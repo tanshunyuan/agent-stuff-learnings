@@ -7,8 +7,11 @@ requires-python = ">=3.13"
 dependencies = [
     "langchain>=0.3.25",
     "langchain-community>=0.3.24",
+    "langchain-core>=0.3.60",
     "langchain-ollama>=0.3.3",
     "langgraph>=0.4.5",
+    "nest-asyncio>=1.6.0",
+    "pyppeteer>=2.0.0",
     "tqdm>=4.67.1",
 ]
 
