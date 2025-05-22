@@ -2,7 +2,8 @@ from langchain_ollama import ChatOllama
 from langgraph.graph import StateGraph, END
 from typing_extensions import TypedDict
 
-llm = ChatOllama(model="qwen:7b")
+# https://python.langchain.com/api_reference/ollama/chat_models/langchain_ollama.chat_models.ChatOllama.html
+llm = ChatOllama(model="qwen2.5:7b")
 
 
 # Define the StateGraph State, the return value after the graph invokation is a combination of both 
@@ -11,7 +12,6 @@ llm = ChatOllama(model="qwen:7b")
 class State(TypedDict):
     input: str
     output: str
-
 
 def llm_echo_node(state: State):
     user_input = state.get("input", "")
