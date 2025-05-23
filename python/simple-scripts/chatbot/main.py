@@ -11,8 +11,10 @@ from langgraph.checkpoint.memory import MemorySaver
 # by default, it's recognised as a tool
 from langchain_tavily import TavilySearch
 from langchain.chat_models import init_chat_model
+from langchain_core.tools import tool
 
-from pprint import pprint
+from langgraph.types import Command, interrupt
+
 from dotenv import load_dotenv
 
 import os
@@ -21,9 +23,6 @@ import os
 load_dotenv()
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
 
-web_search_tool = TavilySearch(max_results=2)
-tools = [web_search_tool]
-
 
 # State is the FIRST thing to define in a graph
 class State(TypedDict):
@@ -31,6 +30,22 @@ class State(TypedDict):
     # Docs for add_messages: https://langchain-ai.github.io/langgraph/reference/graphs/#langgraph.graph.message.add_messages
     messages: Annotated[list, add_messages]
 
+
+web_search_tool = TavilySearch(max_results=2)
+
+
+@tool
+def human_assistance(query: str) -> str:
+    """Request assistance from a human."""
+    human_response = interrupt({"query": query})
+    print(f"human_response: {human_response}")
+    return human_response["data"]
+
+
+tools = [
+    # web_search_tool,
+    human_assistance
+]
 
 llm = init_chat_model(
     "qwen2.5:7b",
@@ -45,9 +60,13 @@ llm_with_tools = llm.bind_tools(tools)
 # Graph !== llm, the graph is just a outline of what components to call,
 # the nodes will then invoke the llm
 def chatbot_node(state: State):
-    return {"messages": [llm.invoke(state["messages"])]}
-    # return {"messages": [llm_with_tools.invoke(state["messages"])]}
-
+    # message = llm.invoke(state["messages"])
+    # Because we will be interrupting during tool execution,
+    # we disable parallel tool calling to avoid repeating any
+    # tool invocations when we resume.
+    message = llm_with_tools.invoke(state["messages"])
+    assert len(message.tool_calls) <= 1
+    return {"messages": [message]}
 
 
 graph_builder = StateGraph(State)
@@ -61,18 +80,14 @@ graph_builder.add_conditional_edges("chatbot", tools_condition)
 
 # Any time a tool is called, we return to the chatbot to decide the next step
 graph_builder.add_edge("tools", "chatbot")
-# graph_builder.add_edge(START, "chatbot")
 
 # sugar syntax for graph_builder.add_edge(START, "chatbot")
 graph_builder.set_entry_point("chatbot")
 
 memory = MemorySaver()
-graph = graph_builder.compile(checkpointer=memory)
+graph = graph_builder.compile(checkpointer=memory, interrupt_before=["tools"])
 
 config = {"configurable": {"thread_id": "1"}}
-
-# Get graph state
-snapshot = graph.get_state(config=config)
 
 
 # Stream updates from the graph
@@ -85,9 +100,12 @@ def stream_graph_updates(user_input: str):
         stream_mode="values",
     )
     for event in events:
-        event["messages"][-1].pretty_print()
-        # for value in event.values():
-        #     print("Assistant:", value["messages"][-1].content)
+        if "messages" in event:
+            event["messages"][-1].pretty_print()
+
+    # todo: figure out how to introduce the human in the loop part
+    snapshot = graph.get_state(config=config)
+
 
 while True:
     try:
