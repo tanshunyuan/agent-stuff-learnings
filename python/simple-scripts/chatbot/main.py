@@ -1,4 +1,5 @@
 # https://langchain-ai.github.io/langgraph/tutorials/get-started/1-build-basic-chatbot/
+# @todo, maybe an upgrade to this is to add a frontend with a chatbot and have a fast api backend to see how persistance works
 
 from typing import Annotated
 from typing_extensions import TypedDict
