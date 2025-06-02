@@ -61,9 +61,13 @@ def human_assistance(
     )
     logger.debug(f"human_response: {human_response}")
 
-    # Grab the value of "correct" from the response and check if it starts with "y"
     # If the information is correct, update the state as-is.
-    if human_response.get("correct", "").lower().startswith("y"):
+    condition = human_response.get("correct", "").lower().startswith("y")
+    logger.debug(f"correct: {human_response.get('correct', '')}")
+    logger.debug(f"condition: {condition}")
+
+    # Grab the value of "correct" from the response and check if it starts with "y"
+    if condition:
         verified_name = name
         verified_birthday = birthday
         response = "Correct"
@@ -166,6 +170,8 @@ def stream_graph_updates(user_input: str):
             resume={
                 "name": "LangGraph",
                 "birthday": "Jan 17, 2024",
+                # Guess this is how you trigger the "condition" in human_assistance
+                # "correct": "y"
             },
         )
         events = graph.stream(human_command, config, stream_mode="values")
