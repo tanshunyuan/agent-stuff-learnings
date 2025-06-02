@@ -126,6 +126,7 @@ def stream_graph_updates(user_input: str):
         for interrupt in interrupts:
             print('le interrupt: {}'.format(interrupt))
 
+        # Though it's a human response, it'll be taken in as a tool message
         human_response = (
             "We, the experts are here to help! We'd recommend you check out LangGraph to build your agent."
             " It's much more reliable and extensible than simple autonomous agents."
